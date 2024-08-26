@@ -14,6 +14,7 @@ import subprocess
 import ray
 
 import ray.util.spark.cluster_init
+from ray._private import net
 from ray.util.spark import (
     setup_ray_cluster,
     shutdown_ray_cluster,
@@ -215,7 +216,7 @@ class RayOnSparkCPUClusterTestBase(ABC):
 
         time.sleep(2)  # wait ray head node exit.
         # assert ray head node exit by checking head port being closed.
-        hostname, port = cluster.address.split(":")
+        hostname, port = net._parse_ip_port(cluster.address)
         assert not is_port_in_use(hostname, int(port))
 
     def test_background_spark_job_exit_trigger_ray_head_exit(self):
@@ -231,7 +232,7 @@ class RayOnSparkCPUClusterTestBase(ABC):
             time.sleep(5)
 
             # assert ray head node exit by checking head port being closed.
-            hostname, port = cluster.address.split(":")
+            hostname, port = net._parse_ip_port(cluster.address)
             assert not is_port_in_use(hostname, int(port))
 
     def test_autoscaling(self):

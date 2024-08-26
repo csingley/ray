@@ -135,7 +135,7 @@ async-generator==1.10
     # via -r /ray/ci/../python/requirements/test-requirements.txt
 async-timeout==4.0.3
     # via redis
-attrs==21.4.0
+attrs==22.2.0
     # via
     #   -r /ray/ci/../python/requirements/test-requirements.txt
     #   aiohttp

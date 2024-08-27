@@ -1,18 +1,22 @@
-PROJECT_DIR="${HOME}/Code/ray"
+This build must be done on a laptop.
+The build container used here is CentOS 7, which is blocked in Prod.
+
+```
+sudo dnf install python3.9
+LOCAL_CHECKOUT="${HOME}/Code/ray"
 VENV_DIR="${HOME}/ray_venv"
-mkdir -p "${PROJECT_DIR}" "${VENV_DIR}"
-sudo dnf install \
-    clang python3-devel-3.9.19
+mkdir -p "${LOCAL_CHECKOUT}" "${VENV_DIR}"
 python3.9 -m venv "${VENV_DIR}"
-source "${VENV_DIR}"/bin/activate
-cd "${PROJECT_DIR}/python"
-alias with-proxy="HTTPS_PROXY=http://fwdproxy:8080 HTTP_PROXY=http://fwdproxy:8080 https_proxy=http://fwdproxy:8080 http_proxy=http://fwdproxy:8080"
-#with-proxy ci/env/install-bazel.sh
-#with-proxy ./build.sh
-#with-proxy python setup.py bdist_wheel
-with-proxy docker run -ti --rm \
+source "${VENV_DIR}/bin/activate"
+git clone git@github.com:csingley/ray "${LOCAL_CHECKOUT}"
+cd "${LOCAL_CHECKOUT}"
+git checkout six
+podman run -ti --rm \
     -e BUILDKITE_COMMIT="$(git rev-parse HEAD)" \
     -e BUILD_ONE_PYTHON_ONLY=py39 \
     -w /ray -v "$(pwd)":/ray \
     quay.io/pypa/manylinux2014_x86_64:2024-07-02-9ac04ee \
     /ray/python/build-wheel-manylinux2014.sh
+./build-docker.sh
+podman push harbor.thefacebook.com/arc/rayproject/ray:dev0
+```

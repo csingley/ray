@@ -4,9 +4,13 @@
 # base-deps, or ray images. This script is *not* tested.
 
 GPU=""
+# WHEEL_URL="https://s3-us-west-2.amazonaws.com/ray-wheels/latest/ray-3.0.0.dev0-cp39-cp39-manylinux2014_x86_64.whl"
+# CPP_WHEEL_URL="https://s3-us-west-2.amazonaws.com/ray-wheels/latest/ray_cpp-3.0.0.dev0-cp39-cp39-manylinux2014_x86_64.whl"
+DOCKER_PROJECT="harbor.thefacebook.com/arc/rayproject"
+LOCAL_CHECKOUT="${HOME}/Code/ray"
+WHEEL_URL="file://${LOCAL_CHECKOUT}/.whl/ray-3.0.0.dev0-cp39-cp39-manylinux2014_x86_64.whl"
+CPP_WHEEL_URL="file://${LOCAL_CHECKOUT}/.whl/ray_cpp-3.0.0.dev0-cp39-cp39-manylinux2014_x86_64.whl"
 BASE_IMAGE="ubuntu:22.04"
-WHEEL_URL="https://s3-us-west-2.amazonaws.com/ray-wheels/latest/ray-3.0.0.dev0-cp39-cp39-manylinux2014_x86_64.whl"
-CPP_WHEEL_URL="https://s3-us-west-2.amazonaws.com/ray-wheels/latest/ray_cpp-3.0.0.dev0-cp39-cp39-manylinux2014_x86_64.whl"
 PYTHON_VERSION="3.9"
 
 BUILD_ARGS=()
@@ -53,22 +57,20 @@ if [[ "$OUTPUT_SHA" != "YES" ]]; then
     echo "=== Building base-deps image ===" >/dev/stderr
 fi
 
+BASE_DEPS_TAG="${DOCKER_PROJECT}/base-deps0:dev$GPU"
 BUILD_CMD=(
     podman build "${BUILD_ARGS[@]}"
     --format=docker
     --network=host
     --build-arg BASE_IMAGE="$BASE_IMAGE"
     --build-arg PYTHON_VERSION="${PYTHON_VERSION}"
-    -t "rayproject/base-deps:dev$GPU" "docker/base-deps"
+    -t "${BASE_DEPS_TAG}" "docker/base-deps"
 )
 
+IMAGE_SHA="$("${BUILD_CMD[@]}")"
 if [[ "$OUTPUT_SHA" == "YES" ]]; then
-    IMAGE_SHA="$("${BUILD_CMD[@]}")"
-    echo "rayproject/base-deps:dev$GPU SHA:$IMAGE_SHA"
-else
-    "${BUILD_CMD[@]}"
+    echo "${BASE_DEPS_TAG} SHA:$IMAGE_SHA"
 fi
-
 
 # Build ray image
 if [[ "$OUTPUT_SHA" != "YES" ]]; then
@@ -77,27 +79,25 @@ fi
 
 RAY_BUILD_DIR="$(mktemp -d)"
 mkdir -p "$RAY_BUILD_DIR/.whl"
-wget --quiet "$WHEEL_URL" -P "$RAY_BUILD_DIR/.whl"
-wget --quiet "$CPP_WHEEL_URL" -P "$RAY_BUILD_DIR/.whl"
+curl --silent --show-error --output-dir "$RAY_BUILD_DIR/.whl" --remote-name-all "$WHEEL_URL" "$CPP_WHEEL_URL"
 cp python/requirements_compiled.txt "$RAY_BUILD_DIR"
 cp docker/ray/Dockerfile "$RAY_BUILD_DIR"
 
 WHEEL="$(basename "$RAY_BUILD_DIR"/.whl/ray-*.whl)"
 
+RAY_TAG="${DOCKER_PROJECT}/ray:dev0$GPU"
 BUILD_CMD=(
     podman build "${BUILD_ARGS[@]}"
     --format=docker
     --network=host
     --build-arg FULL_BASE_IMAGE="rayproject/base-deps:dev$GPU"
     --build-arg WHEEL_PATH=".whl/${WHEEL}"
-    -t "rayproject/ray:dev$GPU" "$RAY_BUILD_DIR"
+    -t "${RAY_TAG}" "$RAY_BUILD_DIR"
 )
 
+IMAGE_SHA="$("${BUILD_CMD[@]}")"
 if [[ "$OUTPUT_SHA" == "YES" ]]; then
-    IMAGE_SHA="$("${BUILD_CMD[@]}")"
-    echo "rayproject/ray:dev$GPU SHA:$IMAGE_SHA"
-else
-    "${BUILD_CMD[@]}"
+    echo "${RAY_TAG} SHA:$IMAGE_SHA"
 fi
 
-rm -rf "$WHEEL_DIR"
+rm -rf "$RAY_BUILD_DIR"

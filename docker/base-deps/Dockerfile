@@ -13,7 +13,7 @@ ENV LANG=C.UTF-8
 # TODO(ilr) $HOME seems to point to result in "" instead of "/home/ray"
 ENV PATH "/home/ray/anaconda3/bin:$PATH"
 ARG DEBIAN_FRONTEND=noninteractive
-ARG PYTHON_VERSION=3.8.16
+ARG PYTHON_VERSION=3.9
 ARG HOSTTYPE=${HOSTTYPE:-x86_64}
 
 ARG RAY_UID=1000
@@ -31,8 +31,8 @@ USER $RAY_UID
 ENV HOME=/home/ray
 
 SHELL ["/bin/bash", "-c"]
-RUN sudo apt-get update -y && sudo apt-get upgrade -y \
-    && sudo apt-get install -y \
+RUN sudo -E apt-get update -y && sudo -E apt-get upgrade -y \
+    && sudo -E apt-get install -y \
         git \
         libjemalloc-dev \
         wget \
@@ -64,11 +64,12 @@ RUN sudo apt-get update -y && sudo apt-get upgrade -y \
         psutil \
         # Required a recent version of setuptools to be compatible with python 3.12+.
         setuptools==71.1.0 \
+        packaging==23.0 \
     # To avoid the following error on Jenkins:
     # AttributeError: 'numpy.ufunc' object has no attribute '__module__'
     && $HOME/anaconda3/bin/pip uninstall -y dask \ 
     # We install cmake temporarily to get psutil
-    && sudo apt-get autoremove -y cmake zlib1g-dev \
+    && sudo -E apt-get autoremove -y cmake zlib1g-dev \
         # We keep g++ on GPU images, because uninstalling removes CUDA Devel tooling
         $(if [[ "$BASE_IMAGE" == "ubuntu:22.04" && "$HOSTTYPE" == "x86_64" ]]; then echo \
         g++; fi) \
@@ -79,16 +80,16 @@ RUN sudo apt-get update -y && sudo apt-get upgrade -y \
         "redis>=3.5.0,<4.0.0" \
         "six==1.13.0" \
         "boto3==1.26.76" \
-        "pyOpenSSL==22.1.0" \
-        "cryptography==38.0.1" \
+        "pyOpenSSL==24.2.1" \
+        "cryptography==42.0.5" \
         "google-api-python-client==1.7.8" \
         "google-oauth" \
-        "azure-cli-core==2.40.0" \
-        "azure-identity==1.10.0" \
-        "azure-mgmt-compute==23.1.0" \
-        "azure-mgmt-network==19.0.0" \
-        "azure-mgmt-resource==20.0.0" \
-        "msrestazure==0.6.4"; \
+        "azure-cli-core==2.63.0" \
+        "azure-identity==1.17.1" \
+        "azure-mgmt-compute==33.0.0" \
+        "azure-mgmt-network==26.0.0" \
+        "azure-mgmt-resource==23.1.1" \
+        "msrestazure"; \
     fi;)
 
 WORKDIR $HOME

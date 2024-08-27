@@ -1,0 +1,18 @@
+PROJECT_DIR="${HOME}/Code/ray"
+VENV_DIR="${HOME}/ray_venv"
+mkdir -p "${PROJECT_DIR}" "${VENV_DIR}"
+sudo dnf install \
+    clang python3-devel-3.9.19
+python3.9 -m venv "${VENV_DIR}"
+source "${VENV_DIR}"/bin/activate
+cd "${PROJECT_DIR}/python"
+alias with-proxy="HTTPS_PROXY=http://fwdproxy:8080 HTTP_PROXY=http://fwdproxy:8080 https_proxy=http://fwdproxy:8080 http_proxy=http://fwdproxy:8080"
+#with-proxy ci/env/install-bazel.sh
+#with-proxy ./build.sh
+#with-proxy python setup.py bdist_wheel
+with-proxy docker run -ti --rm \
+    -e BUILDKITE_COMMIT="$(git rev-parse HEAD)" \
+    -e BUILD_ONE_PYTHON_ONLY=py39 \
+    -w /ray -v "$(pwd)":/ray \
+    quay.io/pypa/manylinux2014_x86_64:2024-07-02-9ac04ee \
+    /ray/python/build-wheel-manylinux2014.sh

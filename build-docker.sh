@@ -48,15 +48,16 @@ done
 
 export DOCKER_BUILDKIT=1
 
-
 # Build base-deps image
 if [[ "$OUTPUT_SHA" != "YES" ]]; then
     echo "=== Building base-deps image ===" >/dev/stderr
 fi
 
 BUILD_CMD=(
-    docker build "${BUILD_ARGS[@]}"
-    --build-arg BASE_IMAG="$BASE_IMAGE"
+    podman build "${BUILD_ARGS[@]}"
+    --format=docker
+    --network=host
+    --build-arg BASE_IMAGE="$BASE_IMAGE"
     --build-arg PYTHON_VERSION="${PYTHON_VERSION}"
     -t "rayproject/base-deps:dev$GPU" "docker/base-deps"
 )
@@ -81,10 +82,12 @@ wget --quiet "$CPP_WHEEL_URL" -P "$RAY_BUILD_DIR/.whl"
 cp python/requirements_compiled.txt "$RAY_BUILD_DIR"
 cp docker/ray/Dockerfile "$RAY_BUILD_DIR"
 
-WHEEL="$(basename "$WHEEL_DIR"/.whl/ray-*.whl)"
+WHEEL="$(basename "$RAY_BUILD_DIR"/.whl/ray-*.whl)"
 
 BUILD_CMD=(
-    docker build "${BUILD_ARGS[@]}"
+    podman build "${BUILD_ARGS[@]}"
+    --format=docker
+    --network=host
     --build-arg FULL_BASE_IMAGE="rayproject/base-deps:dev$GPU"
     --build-arg WHEEL_PATH=".whl/${WHEEL}"
     -t "rayproject/ray:dev$GPU" "$RAY_BUILD_DIR"

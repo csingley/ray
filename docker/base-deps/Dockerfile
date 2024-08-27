@@ -18,17 +18,17 @@ ARG HOSTTYPE=${HOSTTYPE:-x86_64}
 
 ARG RAY_UID=1000
 ARG RAY_GID=100
+ENV HOME=/home/ray
 
 RUN apt-get update -y \
     && apt-get install -y sudo tzdata \
-    && useradd -ms /bin/bash -d /home/ray ray --uid $RAY_UID --gid $RAY_GID \
+    && useradd -ms /bin/bash -d $HOME ray --uid $RAY_UID --gid $RAY_GID \
     && usermod -aG sudo ray \
     && echo 'ray ALL=NOPASSWD: ALL' >> /etc/sudoers \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
-USER $RAY_UID
-ENV HOME=/home/ray
+USER ray
 
 SHELL ["/bin/bash", "-c"]
 RUN sudo -E apt-get update -y && sudo -E apt-get upgrade -y \
